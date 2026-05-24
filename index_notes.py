@@ -1,8 +1,12 @@
-import os
 import json
+import os
 import chromadb
 from pathlib import Path
 from sentence_transformers import SentenceTransformer
+from tqdm import tqdm
+
+from itertools import chain
+
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -17,28 +21,6 @@ if STATE_FILE.exists():
 else:
     state = {}
 
-from itertools import chain
-
-# combined_files = chain(path.glob("*.txt"), path.glob("*.md"))
-
-for path in chain(
-    (LOGSEQ_DIR / "journals").rglob("*.md"),
-    (LOGSEQ_DIR / "pages").rglob("*.md"),
-):
-    rel = str(path.relative_to(LOGSEQ_DIR))
-    mtime = path.stat().st_mtime
-
-    if rel in state and state[rel]["mtime"] == mtime:
-        continue
-
-    # re-index file here
-
-    state[rel] = {"mtime": mtime}
-
-STATE_FILE.write_text(json.dumps(state, indent=2))
-
-
-
 model = SentenceTransformer("Qwen/Qwen3-Embedding-0.6B")
 
 client = chromadb.PersistentClient(path=DB_DIR)
@@ -51,24 +33,41 @@ def chunks(text, size=900, overlap=150):
         yield text[i:i + size]
         i += size - overlap
 
-docs, ids, metas = [], [], []
+import ipdb ; ipdb.set_trace()
 
-for path in LOGSEQ_DIR.rglob("*.md"):
-    rel = path.relative_to(LOGSEQ_DIR)
+for path in tqdm(chain(
+    (LOGSEQ_DIR / "journals").rglob("2026_05_*.md"),
+    # (LOGSEQ_DIR / "pages").rglob("*.md"),
+)):
+    rel = str(path.relative_to(LOGSEQ_DIR))
+    mtime = path.stat().st_mtime
+
+    if rel in state and state[rel]["mtime"] == mtime:
+        continue
+
+    state[rel] = {"mtime": mtime}
+
+    # re-index file here
+    docs, ids, metas = [], [], []
+
     text = path.read_text(errors="ignore")
     for j, chunk in enumerate(chunks(text)):
         if chunk.strip():
             ids.append(f"{rel}::{j}")
             docs.append(chunk)
             metas.append({"path": str(rel), "chunk": j})
+    #
+    embeddings = model.encode(docs, normalize_embeddings=True).tolist()
+    
+    collection.upsert(
+        ids=ids,
+        documents=docs,
+        embeddings=embeddings,
+        metadatas=metas,
+    )
+    ...
+    print(f"Indexed {len(docs)} chunks from {rel}")
 
-embeddings = model.encode(docs, normalize_embeddings=True).tolist()
+STATE_FILE.write_text(json.dumps(state, indent=2))
 
-collection.upsert(
-    ids=ids,
-    documents=docs,
-    embeddings=embeddings,
-    metadatas=metas,
-)
 
-print(f"Indexed {len(docs)} chunks")
