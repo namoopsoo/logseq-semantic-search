@@ -1,5 +1,6 @@
 import html
 import re
+import random
 from pathlib import Path
 
 import chromadb
@@ -250,6 +251,41 @@ def home(
 
         {result_cards}
       </main>
+    </body>
+    </html>
+    """
+
+
+@app.get("/random", response_class=HTMLResponse)
+def get_random(
+):
+    #
+    results = collection.get(
+        include=["metadatas", "documents"]
+    ) 
+    i, id_ = random.choice(
+        [(i, x) for (i,x) in enumerate(results["ids"])]
+    )
+    (page, chunk) = id_.split("::")
+    i, (page, chunk), results["metadatas"][i]
+
+    doc = results["documents"][i].replace("\n", "<br/>")
+
+    return f"""
+    <html>
+    <body>
+    <p>
+    {i, (page, chunk), results["metadatas"][i]}<br/><br/>
+
+    <pre>
+- query: "query"
+  hits:
+    - "{id_}"
+    </pre>
+    </p><br/>
+    <p>
+    {doc}
+    </p>
     </body>
     </html>
     """

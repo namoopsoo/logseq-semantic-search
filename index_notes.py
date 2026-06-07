@@ -4,6 +4,7 @@ import chromadb
 from pathlib import Path
 from sentence_transformers import SentenceTransformer
 from tqdm import tqdm
+import time
 
 from itertools import chain
 
@@ -33,19 +34,21 @@ def chunks(text, size=900, overlap=150):
         yield text[i:i + size]
         i += size - overlap
 
-import ipdb ; ipdb.set_trace()
-
-for path in tqdm(chain(
-    (LOGSEQ_DIR / "journals").rglob("2026_05_*.md"),
+paths = [x for x in chain(
+    (LOGSEQ_DIR / "journals").rglob("2025_*.md"),
     # (LOGSEQ_DIR / "pages").rglob("*.md"),
-)):
+)]
+
+for path in tqdm(paths):
     rel = str(path.relative_to(LOGSEQ_DIR))
     mtime = path.stat().st_mtime
 
     if rel in state and state[rel]["mtime"] == mtime:
         continue
-
+    # TODO move the update until after we actually added the thing.
     state[rel] = {"mtime": mtime}
+
+    time.sleep(30)
 
     # re-index file here
     docs, ids, metas = [], [], []
@@ -53,7 +56,7 @@ for path in tqdm(chain(
     text = path.read_text(errors="ignore")
     for j, chunk in enumerate(chunks(text)):
         if chunk.strip():
-            ids.append(f"{rel}::{j}")
+            ids.append(f"{rel}::{j}")  # TODO the ids arent great at pointing to which chunk in the file contains the thing. but guess you can approximate using the chunk length, and overlap, 900 and 150 ?
             docs.append(chunk)
             metas.append({"path": str(rel), "chunk": j})
     #
@@ -68,6 +71,6 @@ for path in tqdm(chain(
     ...
     print(f"Indexed {len(docs)} chunks from {rel}")
 
-STATE_FILE.write_text(json.dumps(state, indent=2))
+    STATE_FILE.write_text(json.dumps(state, indent=2))
 
 
