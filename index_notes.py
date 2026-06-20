@@ -16,13 +16,18 @@ DB_DIR = os.getenv("DB_DIR")
 COLLECTION = os.getenv("COLLECTION")
 LOGSEQ_DIR = Path(os.getenv("LOGSEQ_DIR"))
 STATE_FILE = Path("index_state.json")
+MODEL_NAME = "Qwen/Qwen3-Embedding-0.6B" 
 
 if STATE_FILE.exists():
     state = json.loads(STATE_FILE.read_text())
 else:
     state = {}
 
-model = SentenceTransformer("Qwen/Qwen3-Embedding-0.6B")
+hugging_face_cache = "/models"
+model =SentenceTransformer(
+  local_files_only=True,
+  model_name_or_path=MODEL_NAME,
+  cache_folder=hugging_face_cache)
 
 client = chromadb.PersistentClient(path=DB_DIR)
 collection = client.get_or_create_collection(COLLECTION)
