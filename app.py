@@ -9,14 +9,21 @@ from fastapi.responses import HTMLResponse
 from fastapi.responses import FileResponse
 from sentence_transformers import SentenceTransformer
 
-DB_DIR = "./chroma_logseq"
+DB_DIR = "/chroma_logseq"
 COLLECTION = "logseq_notes"
-MODEL_NAME = "Qwen/Qwen3-Embedding-0.6B"  # or your working local model
+MODEL_NAME = "all-MiniLM-L6-v2"
+MODEL_NAME = "all-mpnet-base-v2"
+MODEL_NAME = "Qwen/Qwen3-Embedding-0.6B" 
+hugging_face_cache = "/models"
 
 app = FastAPI(title="Logseq Semantic Search")
 
 print("Loading embedding model...")
-model = SentenceTransformer(MODEL_NAME)
+
+model =SentenceTransformer(
+  local_files_only=True,
+  model_name_or_path=MODEL_NAME,
+  cache_folder=hugging_face_cache)
 print("Model loaded.")
 
 client = chromadb.PersistentClient(path=DB_DIR)
