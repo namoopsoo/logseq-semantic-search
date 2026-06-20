@@ -6,6 +6,7 @@ from pathlib import Path
 import chromadb
 from fastapi import FastAPI, Query
 from fastapi.responses import HTMLResponse
+from fastapi.responses import FileResponse
 from sentence_transformers import SentenceTransformer
 
 DB_DIR = "./chroma_logseq"
@@ -289,3 +290,14 @@ def get_random(
     </body>
     </html>
     """
+
+favicon_path = 'favicon.ico'
+favicon_path = 'favicon-61f4ee969f89f9936688a6c49b63173679a18780_2_1000x1000.jpeg'
+@app.get('/favicon.ico', include_in_schema=False)
+async def favicon():
+    """
+    # Source - https://stackoverflow.com/a/69065939
+    # Posted by thisIlike, modified by community. See post 'Timeline' for change history
+    # Retrieved 2026-06-07, License - CC BY-SA 4.0
+    """
+    return FileResponse(favicon_path)
