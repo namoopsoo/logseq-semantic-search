@@ -1,0 +1,18 @@
+services:
+  logseq-semantic-search:
+    image: $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/logseq-semantic-search:v0.1
+    container_name: logseq-semantic-search
+    restart: unless-stopped
+    ports:
+      - "0.0.0.0:8000:8000"
+    volumes:
+      - ${LOCAL_ROOT}/logseq/notes:/notes:ro
+      - ${LOCAL_ROOT}/logseq/chroma:/chroma_logseq
+      - ${LOCAL_ROOT}/logseq/models:/models
+    environment:
+      LOGSEQ_DIR: /notes
+      DB_DIR: "/chroma_logseq"
+      MODEL_NAME: Qwen/Qwen3-Embedding-0.6B
+      COLLECTION: logseq_notes
+
+

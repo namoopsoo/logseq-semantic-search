@@ -17,14 +17,14 @@ COLLECTION = os.getenv("COLLECTION")
 LOGSEQ_DIR = Path(os.getenv("LOGSEQ_DIR"))
 STATE_FILE = Path("index_state.json")
 MODEL_NAME = "Qwen/Qwen3-Embedding-0.6B" 
+hugging_face_cache = "/models"
 
 if STATE_FILE.exists():
     state = json.loads(STATE_FILE.read_text())
 else:
     state = {}
 
-hugging_face_cache = "/models"
-model =SentenceTransformer(
+model = SentenceTransformer(
   local_files_only=True,
   model_name_or_path=MODEL_NAME,
   cache_folder=hugging_face_cache)
@@ -53,7 +53,7 @@ for path in tqdm(paths):
     # TODO move the update until after we actually added the thing.
     state[rel] = {"mtime": mtime}
 
-    time.sleep(30)
+    # time.sleep(30)
 
     # re-index file here
     docs, ids, metas = [], [], []

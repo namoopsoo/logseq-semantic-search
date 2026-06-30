@@ -1,0 +1,27 @@
+
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: hello-logseq
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+
+      containers:
+      - name: hello
+        image: ${AWS_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/logseq-semantic-search:v0.1
+
+
+        command:
+          - /bin/sh
+          - -c
+
+        args:
+          - |
+            echo "Hello from Kubernetes!"
+            uname -a
+            python --version
+            ls -la /
+            echo "Done."

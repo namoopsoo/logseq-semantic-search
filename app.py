@@ -20,7 +20,7 @@ app = FastAPI(title="Logseq Semantic Search")
 
 print("Loading embedding model...")
 
-model =SentenceTransformer(
+model = SentenceTransformer(
   local_files_only=True,
   model_name_or_path=MODEL_NAME,
   cache_folder=hugging_face_cache)
@@ -270,7 +270,7 @@ def get_random(
     #
     results = collection.get(
         include=["metadatas", "documents"]
-    ) 
+    )
     i, id_ = random.choice(
         [(i, x) for (i,x) in enumerate(results["ids"])]
     )

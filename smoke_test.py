@@ -10,7 +10,7 @@ MODEL_NAME = "all-MiniLM-L6-v2"
 MODEL_NAME = "all-mpnet-base-v2"
 MODEL_NAME = "Qwen/Qwen3-Embedding-0.6B" 
 
-model =SentenceTransformer(
+model = SentenceTransformer(
   local_files_only=True,
   model_name_or_path=MODEL_NAME,
   cache_folder=hugging_face_cache)
