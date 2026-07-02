@@ -1,81 +1,247 @@
+import base64
+import hashlib
 import json
 import os
-import chromadb
+import re
+from dataclasses import dataclass
+from datetime import date
+from itertools import chain
 from pathlib import Path
+from typing import Iterable
+
+import chromadb
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from dotenv import load_dotenv
 from sentence_transformers import SentenceTransformer
 from tqdm import tqdm
-import time
 
-from itertools import chain
-
-
-from dotenv import load_dotenv
 load_dotenv()
 
-DB_DIR = os.getenv("DB_DIR")
-COLLECTION = os.getenv("COLLECTION")
-LOGSEQ_DIR = Path(os.getenv("LOGSEQ_DIR"))
-STATE_FILE = Path("index_state.json")
-MODEL_NAME = "Qwen/Qwen3-Embedding-0.6B" 
-hugging_face_cache = "/models"
+DEFAULT_MODEL_NAME = "Qwen/Qwen3-Embedding-0.6B"
+DATE_STEM_RE = re.compile(r"^(\d{4})_(\d{2})_(\d{2})$")
 
-if STATE_FILE.exists():
-    state = json.loads(STATE_FILE.read_text())
-else:
-    state = {}
 
-model = SentenceTransformer(
-  local_files_only=True,
-  model_name_or_path=MODEL_NAME,
-  cache_folder=hugging_face_cache)
+@dataclass(frozen=True)
+class MarkdownFile:
+    rel: str
+    fingerprint: str
+    text: str
 
-client = chromadb.PersistentClient(path=DB_DIR)
-collection = client.get_or_create_collection(COLLECTION)
 
-def chunks(text, size=900, overlap=150):
+def getenv_bool(name: str, default: bool = False) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.lower() in {"1", "true", "yes", "on"}
+
+
+def required_env(name: str) -> str:
+    value = os.getenv(name)
+    if not value:
+        raise ValueError(f"{name} must be set")
+    return value
+
+
+def chunks(text: str, size: int = 900, overlap: int = 150):
     # rough char chunking; close enough for v1
     i = 0
     while i < len(text):
-        yield text[i:i + size]
+        yield text[i : i + size]
         i += size - overlap
 
-paths = [x for x in chain(
-    (LOGSEQ_DIR / "journals").rglob("2025_*.md"),
-    # (LOGSEQ_DIR / "pages").rglob("*.md"),
-)]
 
-for path in tqdm(paths):
-    rel = str(path.relative_to(LOGSEQ_DIR))
-    mtime = path.stat().st_mtime
+def build_aesgcm_from_env() -> AESGCM | None:
+    key_value = os.getenv("S3_ENCRYPTION_KEY")
+    if not key_value:
+        return None
 
-    if rel in state and state[rel]["mtime"] == mtime:
-        continue
-    # TODO move the update until after we actually added the thing.
-    state[rel] = {"mtime": mtime}
+    try:
+        key = base64.urlsafe_b64decode(key_value)
+    except Exception as exc:
+        raise ValueError("S3_ENCRYPTION_KEY must be a URL-safe base64 encoded 32-byte key") from exc
 
-    # time.sleep(30)
-
-    # re-index file here
-    docs, ids, metas = [], [], []
-
-    text = path.read_text(errors="ignore")
-    for j, chunk in enumerate(chunks(text)):
-        if chunk.strip():
-            ids.append(f"{rel}::{j}")  # TODO the ids arent great at pointing to which chunk in the file contains the thing. but guess you can approximate using the chunk length, and overlap, 900 and 150 ?
-            docs.append(chunk)
-            metas.append({"path": str(rel), "chunk": j})
-    #
-    embeddings = model.encode(docs, normalize_embeddings=True).tolist()
-    
-    collection.upsert(
-        ids=ids,
-        documents=docs,
-        embeddings=embeddings,
-        metadatas=metas,
-    )
-    ...
-    print(f"Indexed {len(docs)} chunks from {rel}")
-
-    STATE_FILE.write_text(json.dumps(state, indent=2))
+    if len(key) != 32:
+        raise ValueError("S3_ENCRYPTION_KEY must decode to exactly 32 bytes for AES-256-GCM")
+    return AESGCM(key)
 
 
+def decrypt_if_needed(data: bytes, aesgcm: AESGCM | None) -> bytes:
+    if aesgcm is None:
+        return data
+    if len(data) < 13:
+        raise ValueError("Encrypted S3 object is too small to contain a nonce and ciphertext")
+    nonce, ciphertext = data[:12], data[12:]
+    return aesgcm.decrypt(nonce, ciphertext, None)
+
+
+def encrypt_if_needed(data: bytes, aesgcm: AESGCM | None) -> bytes:
+    if aesgcm is None:
+        return data
+    nonce = os.urandom(12)
+    return nonce + aesgcm.encrypt(nonce, data, None)
+
+
+def date_from_rel(rel: str) -> date | None:
+    match = DATE_STEM_RE.match(Path(rel).stem)
+    if not match:
+        return None
+    year, month, day = [int(part) for part in match.groups()]
+    return date(year, month, day)
+
+
+def in_date_window(rel: str) -> bool:
+    file_date = date_from_rel(rel)
+    if file_date is None:
+        return True
+
+    start = os.getenv("SHARD_DATE_START")
+    end = os.getenv("SHARD_DATE_END")
+    if start and file_date < date.fromisoformat(start):
+        return False
+    if end and file_date > date.fromisoformat(end):
+        return False
+    return True
+
+
+def in_hash_shard(rel: str) -> bool:
+    count = int(os.getenv("SHARD_COUNT", "1"))
+    index = int(os.getenv("SHARD_INDEX", "0"))
+    if count < 1:
+        raise ValueError("SHARD_COUNT must be at least 1")
+    if index < 0 or index >= count:
+        raise ValueError("SHARD_INDEX must be between 0 and SHARD_COUNT - 1")
+    digest = hashlib.sha256(rel.encode("utf-8")).digest()
+    return int.from_bytes(digest[:8], "big") % count == index
+
+
+def should_index_rel(rel: str) -> bool:
+    return in_date_window(rel) and in_hash_shard(rel)
+
+
+def iter_local_markdown() -> Iterable[MarkdownFile]:
+    logseq_dir = Path(required_env("LOGSEQ_DIR"))
+    patterns = [pattern.strip() for pattern in os.getenv("LOCAL_MARKDOWN_GLOBS", "journals/2025_*.md").split(",")]
+    paths = chain.from_iterable(logseq_dir.rglob(pattern) for pattern in patterns if pattern)
+
+    for path in paths:
+        rel = str(path.relative_to(logseq_dir))
+        if not should_index_rel(rel):
+            continue
+        yield MarkdownFile(
+            rel=rel,
+            fingerprint=str(path.stat().st_mtime),
+            text=path.read_text(errors="ignore"),
+        )
+
+
+def s3_client():
+    import boto3
+
+    return boto3.client("s3", region_name=os.getenv("AWS_REGION"))
+
+
+def iter_s3_markdown(aesgcm: AESGCM | None) -> Iterable[MarkdownFile]:
+    bucket = required_env("S3_BUCKET")
+    prefix = os.getenv("S3_MARKDOWN_PREFIX", "")
+    client = s3_client()
+    paginator = client.get_paginator("list_objects_v2")
+
+    for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
+        for obj in page.get("Contents", []):
+            key = obj["Key"]
+            if not key.endswith(".md"):
+                continue
+            rel = key[len(prefix) :].lstrip("/") if prefix else key
+            if not should_index_rel(rel):
+                continue
+            body = client.get_object(Bucket=bucket, Key=key)["Body"].read()
+            plaintext = decrypt_if_needed(body, aesgcm)
+            yield MarkdownFile(
+                rel=rel,
+                fingerprint=f'{obj.get("ETag", "").strip(chr(34))}:{obj.get("LastModified", "")}',
+                text=plaintext.decode("utf-8", errors="ignore"),
+            )
+
+
+def write_embeddings_to_s3(records: list[dict], aesgcm: AESGCM | None) -> None:
+    if not records or not getenv_bool("WRITE_EMBEDDINGS_TO_S3"):
+        return
+    bucket = required_env("S3_BUCKET")
+    prefix = os.getenv("S3_EMBEDDINGS_PREFIX", "embeddings/").rstrip("/")
+    shard_index = os.getenv("SHARD_INDEX", "0")
+    payload = "\n".join(json.dumps(record, separators=(",", ":")) for record in records).encode("utf-8")
+    encrypted_payload = encrypt_if_needed(payload, aesgcm)
+    digest = hashlib.sha256(payload).hexdigest()[:16]
+    key = f"{prefix}/shard-{shard_index}/{digest}.jsonl"
+    s3_client().put_object(Bucket=bucket, Key=key, Body=encrypted_payload)
+    print(f"Wrote {len(records)} embedding records to s3://{bucket}/{key}")
+
+
+def load_state() -> dict:
+    state_file = Path(os.getenv("STATE_FILE", "index_state.json"))
+    if state_file.exists():
+        return json.loads(state_file.read_text())
+    return {}
+
+
+def save_state(state: dict) -> None:
+    state_file = Path(os.getenv("STATE_FILE", "index_state.json"))
+    state_file.write_text(json.dumps(state, indent=2))
+
+
+def main() -> None:
+    source = os.getenv("MARKDOWN_SOURCE", "local").lower()
+    aesgcm = build_aesgcm_from_env()
+    state = load_state()
+    model_name = os.getenv("MODEL_NAME", DEFAULT_MODEL_NAME)
+    hugging_face_cache = os.getenv("HF_CACHE_DIR", "/models")
+
+    model = SentenceTransformer(local_files_only=True, model_name_or_path=model_name, cache_folder=hugging_face_cache)
+
+    write_to_chroma = getenv_bool("WRITE_EMBEDDINGS_TO_CHROMA", True)
+    collection = None
+    if write_to_chroma:
+        db_dir = required_env("DB_DIR")
+        collection_name = required_env("COLLECTION")
+        client = chromadb.PersistentClient(path=db_dir)
+        collection = client.get_or_create_collection(collection_name)
+
+    if source == "local":
+        markdown_files = iter_local_markdown()
+    elif source == "s3":
+        markdown_files = iter_s3_markdown(aesgcm)
+    else:
+        raise ValueError("MARKDOWN_SOURCE must be 'local' or 's3'")
+
+    for markdown_file in tqdm(markdown_files):
+        if markdown_file.rel in state and state[markdown_file.rel]["fingerprint"] == markdown_file.fingerprint:
+            continue
+
+        docs, ids, metas = [], [], []
+        for j, chunk in enumerate(chunks(markdown_file.text)):
+            if chunk.strip():
+                ids.append(f"{markdown_file.rel}::{j}")
+                docs.append(chunk)
+                metas.append({"path": markdown_file.rel, "chunk": j})
+
+        if not docs:
+            state[markdown_file.rel] = {"fingerprint": markdown_file.fingerprint}
+            save_state(state)
+            continue
+
+        embeddings = model.encode(docs, normalize_embeddings=True).tolist()
+        if collection is not None:
+            collection.upsert(ids=ids, documents=docs, embeddings=embeddings, metadatas=metas)
+
+        records = [
+            {"id": id_, "document": doc, "embedding": embedding, "metadata": meta}
+            for id_, doc, embedding, meta in zip(ids, docs, embeddings, metas)
+        ]
+        write_embeddings_to_s3(records, aesgcm)
+        state[markdown_file.rel] = {"fingerprint": markdown_file.fingerprint}
+        save_state(state)
+        print(f"Indexed {len(docs)} chunks from {markdown_file.rel}")
+
+
+if __name__ == "__main__":
+    main()
