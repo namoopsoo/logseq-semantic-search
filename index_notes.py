@@ -154,18 +154,40 @@ def iter_s3_markdown(fernet: Fernet | None) -> Iterable[MarkdownFile]:
             )
 
 
+def serialize_embedding_records(records: list[dict]) -> bytes:
+    return "\n".join(json.dumps(record, separators=(",", ":")) for record in records).encode("utf-8")
+
+
+def embedding_output_key(payload: bytes) -> str:
+    prefix = os.getenv("S3_EMBEDDINGS_PREFIX", "embeddings/").rstrip("/")
+    shard_index = os.getenv("SHARD_INDEX", "0")
+    digest = hashlib.sha256(payload).hexdigest()[:16]
+    return f"{prefix}/shard-{shard_index}/{digest}.jsonl"
+
+
 def write_embeddings_to_s3(records: list[dict], fernet: Fernet | None) -> None:
     if not records or not getenv_bool("WRITE_EMBEDDINGS_TO_S3"):
         return
     bucket = required_env("S3_BUCKET")
-    prefix = os.getenv("S3_EMBEDDINGS_PREFIX", "embeddings/").rstrip("/")
-    shard_index = os.getenv("SHARD_INDEX", "0")
-    payload = "\n".join(json.dumps(record, separators=(",", ":")) for record in records).encode("utf-8")
+    payload = serialize_embedding_records(records)
     encrypted_payload = encrypt_if_needed(payload, fernet)
-    digest = hashlib.sha256(payload).hexdigest()[:16]
-    key = f"{prefix}/shard-{shard_index}/{digest}.jsonl"
+    key = embedding_output_key(payload)
     s3_client().put_object(Bucket=bucket, Key=key, Body=encrypted_payload)
     print(f"Wrote {len(records)} embedding records to s3://{bucket}/{key}")
+
+
+def write_embeddings_to_local(records: list[dict], fernet: Fernet | None) -> None:
+    if not records or not getenv_bool("WRITE_EMBEDDINGS_TO_LOCAL"):
+        return
+    if fernet is None:
+        raise ValueError("S3_ENCRYPTION_KEY must be set when WRITE_EMBEDDINGS_TO_LOCAL is true")
+
+    payload = serialize_embedding_records(records)
+    encrypted_payload = encrypt_if_needed(payload, fernet)
+    output_path = Path(required_env("LOCAL_EMBEDDINGS_DIR")) / embedding_output_key(payload)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_bytes(encrypted_payload)
+    print(f"Wrote {len(records)} encrypted embedding records to {output_path}")
 
 
 def load_state() -> dict:
@@ -229,6 +251,7 @@ def main() -> None:
             for id_, doc, embedding, meta in zip(ids, docs, embeddings, metas)
         ]
         write_embeddings_to_s3(records, fernet)
+        write_embeddings_to_local(records, fernet)
         state[markdown_file.rel] = {"fingerprint": markdown_file.fingerprint}
         save_state(state)
         print(f"Indexed {len(docs)} chunks from {markdown_file.rel}")
