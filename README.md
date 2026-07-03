@@ -39,9 +39,9 @@ docker run \
   -v "$PWD/chroma_logseq:/chroma_logseq" \
   -v "$HOME/.cache/huggingface/hub:/models" \
   -v "$PWD/local_embeddings:/local_embeddings" \
-  -v "$PWD/target_dir:/target_dir" \
+  -v "$PWD/encrypted_notes_dir:/encrypted_notes_dir " \
   -e LOGSEQ_DIR=/notes \
-  -e LOCAL_TARGET_DIR=/target_dir \
+  -e LOCAL_ENCRYPTED_NOTES_DIR=/encrypted_notes_dir \
   -e DB_DIR=/chroma \
   -e LOCAL_EMBEDDINGS_DIR="/local_embeddings" \
   -e LOCAL_MARKDOWN_GLOBS="journal/2024_01_*.md" \

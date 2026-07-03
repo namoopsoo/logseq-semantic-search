@@ -11,10 +11,7 @@ def do():
 
     markdown_files = iter_local_markdown(fernet)
 
-    # logseq_dir = Path(required_env("LOGSEQ_DIR"))
-    # local_target_dir = os.getenv("LOCAL_TARGET_DIR")
-
-    output_dir = Path(required_env("LOCAL_EMBEDDINGS_DIR"))
+    output_dir = Path(os.getenv("LOCAL_ENCRYPTED_NOTES_DIR"))
 
     if getenv_bool("WRITE_TO_LOCAL"):
         ...
