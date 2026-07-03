@@ -51,5 +51,6 @@ docker run \
   -e WRITE_EMBEDDINGS_TO_LOCAL="yes" \
   -e S3_BUCKET="no_bucket_specified" \
   -e LOCAL_MARKDOWN_GLOBS="2025_01_*.md" \
+  -e S3_ENCRYPTION_KEY=$S3_ENCRYPTION_KEY \
   logseq-semantic-search:local bash
 ```
