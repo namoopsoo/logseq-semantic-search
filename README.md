@@ -13,3 +13,43 @@ Locally, run the fast api app with,
 ```
 uvicorn app:app --reload --host 127.0.0.1 --port 8000
 ```
+
+
+## Supporting EKS cluster
+Build it 
+```sh
+
+docker run \
+  --rm -it \
+  -v "$PWD":/configs \
+  -v "$HOME/.aws":/root/.aws:ro \
+  -e AWS_PROFILE="${AWS_PROFILE:-default}" \
+  -e AWS_REGION="${AWS_REGION:-us-east-1}" \
+  public.ecr.aws/eksctl/eksctl \
+  create cluster -f /configs/cluster.yaml
+```
+
+## run docker locally
+
+```sh
+docker run \
+  --rm -it \
+  -p 8000:8000 \
+  -v "$LOGSEQ_DIR:/notes:ro" \
+  -v "$PWD/chroma_logseq:/chroma_logseq" \
+  -v "$HOME/.cache/huggingface/hub:/models" \
+  -v "$PWD//local_embeddings://local_embeddings" \
+  -e LOGSEQ_DIR=/notes \
+  -e DB_DIR=/chroma \
+  -e LOCAL_EMBEDDINGS_DIR="/local_embeddings" \
+  -e COLLECTION=logseq_notes \
+  -e MODEL_NAME=Qwen/Qwen3-Embedding-0.6B\
+  -e MARKDOWN_SOURCE="local" \
+  -e HF_CACHE_DIR="/models" \
+  -e WRITE_EMBEDDINGS_TO_S3="no" \
+  -e WRITE_EMBEDDINGS_TO_CHROMA="no" \
+  -e WRITE_EMBEDDINGS_TO_LOCAL="yes" \
+  -e S3_BUCKET="no_bucket_specified" \
+  -e LOCAL_MARKDOWN_GLOBS="2025_01_*.md" \
+  logseq-semantic-search:local bash
+```
