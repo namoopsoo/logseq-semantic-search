@@ -49,9 +49,9 @@ docker run \
   -e MODEL_NAME=Qwen/Qwen3-Embedding-0.6B\
   -e MARKDOWN_SOURCE="local" \
   -e HF_CACHE_DIR="/models" \
-  -e WRITE_EMBEDDINGS_TO_S3="no" \
-  -e WRITE_EMBEDDINGS_TO_CHROMA="no" \
-  -e WRITE_EMBEDDINGS_TO_LOCAL="yes" \
+  -e WRITE_TO_S3="no" \
+  -e WRITE_TO_CHROMA="no" \
+  -e WRITE_TO_LOCAL="yes" \
   -e S3_BUCKET="no_bucket_specified" \
   -e LOCAL_MARKDOWN_GLOBS="2025_01_*.md" \
   -e S3_ENCRYPTION_KEY=$S3_ENCRYPTION_KEY \
