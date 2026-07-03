@@ -38,10 +38,13 @@ docker run \
   -v "$LOGSEQ_DIR:/notes:ro" \
   -v "$PWD/chroma_logseq:/chroma_logseq" \
   -v "$HOME/.cache/huggingface/hub:/models" \
-  -v "$PWD//local_embeddings://local_embeddings" \
+  -v "$PWD/local_embeddings:/local_embeddings" \
+  -v "$PWD/target_dir:/target_dir" \
   -e LOGSEQ_DIR=/notes \
+  -e LOCAL_TARGET_DIR=/target_dir \
   -e DB_DIR=/chroma \
   -e LOCAL_EMBEDDINGS_DIR="/local_embeddings" \
+  -e LOCAL_MARKDOWN_GLOBS="journal/2024_01_*.md" \
   -e COLLECTION=logseq_notes \
   -e MODEL_NAME=Qwen/Qwen3-Embedding-0.6B\
   -e MARKDOWN_SOURCE="local" \

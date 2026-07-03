@@ -12,7 +12,7 @@ COPY pyproject.toml ./
 
 RUN uv sync --no-dev
 
-COPY app.py index_notes.py smoke_test.py favicon-61f4ee969f89f9936688a6c49b63173679a18780_2_1000x1000.jpeg ./
+COPY app.py index_notes.py smoke_test.py encrypt.py  favicon-61f4ee969f89f9936688a6c49b63173679a18780_2_1000x1000.jpeg ./
 
 EXPOSE 8000
 

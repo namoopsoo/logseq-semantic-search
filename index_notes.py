@@ -22,7 +22,7 @@ DATE_STEM_RE = re.compile(r"^(\d{4})_(\d{2})_(\d{2})$")
 
 @dataclass(frozen=True)
 class MarkdownFile:
-    rel: str
+    rel: str  # relative path
     fingerprint: str
     text: str
 
@@ -109,19 +109,23 @@ def should_index_rel(rel: str) -> bool:
     return in_date_window(rel) and in_hash_shard(rel)
 
 
-def iter_local_markdown() -> Iterable[MarkdownFile]:
+def iter_local_markdown(fernet: Fernet | None) -> Iterable[MarkdownFile]:
     logseq_dir = Path(required_env("LOGSEQ_DIR"))
-    patterns = [pattern.strip() for pattern in os.getenv("LOCAL_MARKDOWN_GLOBS", "journals/2025_*.md").split(",")]
+    patterns = [pattern.strip() for pattern in os.getenv("LOCAL_MARKDOWN_GLOBS", "journals/*.md").split(",")]
     paths = chain.from_iterable(logseq_dir.rglob(pattern) for pattern in patterns if pattern)
 
     for path in paths:
         rel = str(path.relative_to(logseq_dir))
         if not should_index_rel(rel):
             continue
+
+        body = path.read_text(errors="ignore")
+        plaintext = decrypt_if_needed(body, fernet)
+
         yield MarkdownFile(
             rel=rel,
             fingerprint=str(path.stat().st_mtime),
-            text=path.read_text(errors="ignore"),
+            text=plaintext,
         )
 
 
@@ -166,7 +170,7 @@ def embedding_output_key(payload: bytes) -> str:
 
 
 def write_embeddings_to_s3(records: list[dict], fernet: Fernet | None) -> None:
-    if not records or not getenv_bool("WRITE_EMBEDDINGS_TO_S3"):
+    if not records or not getenv_bool("WRITE_TO_S3"):
         return
     bucket = required_env("S3_BUCKET")
     payload = serialize_embedding_records(records)
@@ -177,10 +181,10 @@ def write_embeddings_to_s3(records: list[dict], fernet: Fernet | None) -> None:
 
 
 def write_embeddings_to_local(records: list[dict], fernet: Fernet | None) -> None:
-    if not records or not getenv_bool("WRITE_EMBEDDINGS_TO_LOCAL"):
+    if not records or not getenv_bool("WRITE_TO_LOCAL"):
         return
     if fernet is None:
-        raise ValueError("S3_ENCRYPTION_KEY must be set when WRITE_EMBEDDINGS_TO_LOCAL is true")
+        raise ValueError("S3_ENCRYPTION_KEY must be set when WRITE_TO_LOCAL is true")
 
     payload = serialize_embedding_records(records)
     encrypted_payload = encrypt_if_needed(payload, fernet)
@@ -211,7 +215,7 @@ def main() -> None:
 
     model = SentenceTransformer(local_files_only=True, model_name_or_path=model_name, cache_folder=hugging_face_cache)
 
-    write_to_chroma = getenv_bool("WRITE_EMBEDDINGS_TO_CHROMA", True)
+    write_to_chroma = getenv_bool("WRITE_TO_CHROMA", True)
     collection = None
     if write_to_chroma:
         db_dir = required_env("DB_DIR")
