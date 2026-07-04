@@ -126,7 +126,7 @@ def main() -> None:
         collection = client.get_or_create_collection(collection_name)
 
     if source == "local":
-        markdown_files = iter_local_markdown()
+        markdown_files = iter_local_markdown(fernet)
     elif source == "s3":
         markdown_files = iter_s3_markdown(fernet)
     else:

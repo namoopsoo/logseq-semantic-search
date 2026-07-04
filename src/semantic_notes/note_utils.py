@@ -103,8 +103,8 @@ def should_index_rel(rel: str) -> bool:
 
 
 def iter_local_markdown(fernet: Fernet | None = None) -> Iterable[MarkdownFile]:
-    logseq_dir = Path(required_env("LOGSEQ_DIR"))
-    patterns = [pattern.strip() for pattern in os.getenv("LOCAL_MARKDOWN_GLOBS", "journals/*.md").split(",")]
+    logseq_dir = Path(required_env("LOCAL_SOURCE_DIR"))
+    patterns = [pattern.strip() for pattern in os.getenv("LOCAL_MARKDOWN_GLOBS", "*.md").split(",")]
     paths = chain.from_iterable(logseq_dir.rglob(pattern) for pattern in patterns if pattern)
 
     for path in paths:
