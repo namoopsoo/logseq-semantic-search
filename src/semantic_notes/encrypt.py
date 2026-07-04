@@ -23,7 +23,8 @@ def do():
         journal = markdown_file.text
 
         output_path = output_dir / relative_path
-        
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+
         enc = encrypt_if_needed(journal, fernet).decode()
 
         output_path.write_text(enc)
