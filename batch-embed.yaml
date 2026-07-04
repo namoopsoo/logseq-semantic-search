@@ -1,0 +1,75 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: batch-embed-logseq
+spec:
+  backoffLimit: 1
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: batch-embed
+          image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/logseq-semantic-search:v0.1
+          command:
+            - /bin/sh
+            - -c
+          args:
+            - uv run python index_notes.py
+          env:
+            - name: MARKDOWN_SOURCE
+              value: s3
+            - name: WRITE_EMBEDDINGS_TO_S3
+              value: "true"
+            - name: WRITE_EMBEDDINGS_TO_CHROMA
+              value: "false"
+            - name: AWS_REGION
+              valueFrom:
+                secretKeyRef:
+                  name: logseq-batch-embed-env
+                  key: AWS_REGION
+            - name: S3_BUCKET
+              valueFrom:
+                secretKeyRef:
+                  name: logseq-batch-embed-env
+                  key: S3_BUCKET
+            - name: S3_MARKDOWN_PREFIX
+              valueFrom:
+                secretKeyRef:
+                  name: logseq-batch-embed-env
+                  key: S3_MARKDOWN_PREFIX
+            - name: S3_EMBEDDINGS_PREFIX
+              valueFrom:
+                secretKeyRef:
+                  name: logseq-batch-embed-env
+                  key: S3_EMBEDDINGS_PREFIX
+            - name: S3_ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: logseq-batch-embed-env
+                  key: S3_ENCRYPTION_KEY
+            - name: SHARD_DATE_START
+              valueFrom:
+                secretKeyRef:
+                  name: logseq-batch-embed-env
+                  key: SHARD_DATE_START
+                  optional: true
+            - name: SHARD_DATE_END
+              valueFrom:
+                secretKeyRef:
+                  name: logseq-batch-embed-env
+                  key: SHARD_DATE_END
+                  optional: true
+            - name: SHARD_COUNT
+              valueFrom:
+                secretKeyRef:
+                  name: logseq-batch-embed-env
+                  key: SHARD_COUNT
+                  optional: true
+            - name: SHARD_INDEX
+              valueFrom:
+                secretKeyRef:
+                  name: logseq-batch-embed-env
+                  key: SHARD_INDEX
+                  optional: true
+            - name: MODEL_NAME
+              value: Qwen/Qwen3-Embedding-0.6B
