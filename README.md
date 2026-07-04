@@ -44,7 +44,6 @@ docker run \
   -e LOCAL_ENCRYPTED_NOTES_DIR=/encrypted_notes_dir \
   -e DB_DIR=/chroma \
   -e LOCAL_EMBEDDINGS_DIR="/local_embeddings" \
-  -e LOCAL_MARKDOWN_GLOBS="journal/2024_01_*.md" \
   -e COLLECTION=logseq_notes \
   -e MODEL_NAME=Qwen/Qwen3-Embedding-0.6B\
   -e MARKDOWN_SOURCE="local" \
@@ -57,3 +56,4 @@ docker run \
   -e S3_ENCRYPTION_KEY=$S3_ENCRYPTION_KEY \
   logseq-semantic-search:local bash
 ```
+

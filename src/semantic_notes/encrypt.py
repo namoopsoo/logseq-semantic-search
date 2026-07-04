@@ -8,7 +8,7 @@ from semantic_notes.note_utils import build_fernet_from_env, encrypt_if_needed, 
 def do():
     fernet = build_fernet_from_env()
 
-    markdown_files = iter_local_markdown(fernet)
+    markdown_files = iter_local_markdown(None)
 
     output_dir = Path(os.getenv("LOCAL_ENCRYPTED_NOTES_DIR"))
 

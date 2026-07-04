@@ -15,4 +15,33 @@ services:
       MODEL_NAME: Qwen/Qwen3-Embedding-0.6B
       COLLECTION: logseq_notes
 
+  # encrypt from local to local
+  local-encrypt-test:
+    image: $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/logseq-semantic-search:local
+    container_name: logseq-semantic-search
+    volumes:
+      - "$LOGSEQ_DIR:/notes:ro"
+      - "$PWD/chroma_logseq:/chroma_logseq"
+      - "$HOME/.cache/huggingface/hub:/models:ro"
+      - "$PWD/local_embeddings:/local_embeddings"
+      - "$PWD/encrypted_notes_dir:/encrypted_notes_dir"
+    environment:
+      LOGSEQ_DIR: /notes
+      LOCAL_ENCRYPTED_NOTES_DIR: /encrypted_notes_dir
+      DB_DIR: /chroma
+      LOCAL_EMBEDDINGS_DIR: "/local_embeddings"
+      COLLECTION: logseq_notes
+      MODEL_NAME: Qwen/Qwen3-Embedding-0.6B
+      MARKDOWN_SOURCE: "local"
+      HF_CACHE_DIR: "/models"
+      WRITE_TO_S3: "no"
+      WRITE_TO_CHROMA: "no"
+      WRITE_TO_LOCAL: "yes"
+      S3_BUCKET: "no_bucket_specified"
+      LOCAL_MARKDOWN_GLOBS: "journals/2025_02_*.md"
+      S3_ENCRYPTION_KEY: $S3_ENCRYPTION_KEY
+    command:
+      - .venv/bin/python -m semantic_notes.encrypt
+
+
 

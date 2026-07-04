@@ -39,7 +39,7 @@ def required_env(name: str) -> str:
 def build_fernet_from_env() -> Fernet | None:
     key_value = os.getenv("S3_ENCRYPTION_KEY")
     if not key_value:
-        return None
+        raise ValueError("S3_ENCRYPTION_KEY env var is missing")
 
     try:
         return Fernet(key_value.encode("utf-8"))
