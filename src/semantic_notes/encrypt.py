@@ -1,9 +1,8 @@
 import os
 from tqdm import tqdm
 from pathlib import Path
-from index_notes import (
-    build_fernet_from_env, encrypt_if_needed, iter_local_markdown, required_env, getenv_bool,
-)
+
+from semantic_notes.note_utils import build_fernet_from_env, encrypt_if_needed, iter_local_markdown, getenv_bool
 
 
 def do():
