@@ -90,7 +90,7 @@ services:
       # local plaintext notes are the source 
       - "$LOGSEQ_DIR:/notes:ro"
 
-      - "$HOME/.aws":/root/.aws:ro \
+      - "$HOME/.aws:/root/.aws:ro"
 
     environment:
       S3_ENCRYPTION_KEY: $S3_ENCRYPTION_KEY
@@ -102,8 +102,8 @@ services:
       WRITE_TO_LOCAL: "no"
       LOCAL_MARKDOWN_GLOBS: "2024_01_*.md"
 
-      AWS_PROFILE="${AWS_PROFILE:-default}" \
-      AWS_REGION="${AWS_REGION:-us-east-1}" \
+      AWS_PROFILE: "${AWS_PROFILE:-default}"
+      AWS_REGION: "${AWS_REGION:-us-east-1}"
     command:
       - /bin/sh
       - -c
