@@ -73,3 +73,13 @@ kubectl create secret generic $kubernetes_secrets_group \
 ```
 kubectl delete secret $kubernetes_secrets_group
 ```
+
+## Build Docker Image with Local Qwen Cache
+
+This build uses BuildKit to mount the local Hugging Face model cache as a named build context, without adding the 1.1GB model directory to the repo. The model cache directory must already exist locally.
+
+```sh
+DOCKER_BUILDKIT=1 docker build \
+  --build-context qwen_model="$HOME/.cache/huggingface/hub/models--Qwen--Qwen3-Embedding-0.6B" \
+  -t logseq-semantic-search:local .
+```

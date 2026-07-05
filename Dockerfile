@@ -12,6 +12,10 @@ COPY pyproject.toml ./
 
 RUN uv sync --no-dev
 
+RUN --mount=type=bind,from=qwen_model,source=.,target=/tmp/qwen-model,readonly \
+    mkdir -p /models/models--Qwen--Qwen3-Embedding-0.6B && \
+    cp -a /tmp/qwen-model/. /models/models--Qwen--Qwen3-Embedding-0.6B/
+
 COPY src favicon-61f4ee969f89f9936688a6c49b63173679a18780_2_1000x1000.jpeg ./
 COPY tests ./tests
 

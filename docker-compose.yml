@@ -71,12 +71,12 @@ services:
       LOCAL_MARKDOWN_GLOBS: "2025_01_*.md"
       S3_ENCRYPTION_KEY: $S3_ENCRYPTION_KEY
     command:
-      #- /bin/sh
-      #- -c
-      #- .venv/bin/python -m semantic_notes.index_notes
+      - /bin/sh
+      - -c
+      - .venv/bin/python -m semantic_notes.index_notes
 
       # can have just bash, to make this interactive
-      - /bin/bash
+      #- /bin/bash
 
 
   # encrypt from local to local
@@ -122,3 +122,17 @@ services:
       - -c
       - |
         .venv/bin/python -m unittest tests/test_note_utils.py
+
+
+  local-smoke-test:
+    image: logseq-semantic-search:local
+    container_name: logseq-semantic-search
+    environment:
+      FOO: "foo"
+      MODEL_NAME: Qwen/Qwen3-Embedding-0.6B
+    command:
+      - /bin/sh
+      - -c
+      - |
+        .venv/bin/python -m semantic_notes.smoke_test
+
