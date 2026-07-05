@@ -110,3 +110,15 @@ services:
       - |
         .venv/bin/python -m semantic_notes.encrypt
 
+
+  # encrypt from local to local
+  local-unit-testing:
+    image: logseq-semantic-search:local
+    container_name: logseq-semantic-search
+    environment:
+      FOO: "foo"
+    command:
+      - /bin/sh
+      - -c
+      - |
+        .venv/bin/python -m unittest tests/test_note_utils.py

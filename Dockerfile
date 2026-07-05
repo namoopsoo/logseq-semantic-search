@@ -13,7 +13,9 @@ COPY pyproject.toml ./
 RUN uv sync --no-dev
 
 COPY src favicon-61f4ee969f89f9936688a6c49b63173679a18780_2_1000x1000.jpeg ./
+COPY tests ./tests
 
 EXPOSE 8000
 
-CMD ["uv", "run", "uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
+# CMD ["uv", "run", "uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["bash"]

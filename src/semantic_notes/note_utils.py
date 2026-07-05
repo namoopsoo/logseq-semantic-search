@@ -92,6 +92,18 @@ def in_date_window(rel: str) -> bool:
     return True
 
 
+def shard_index_for_rel(rel: str, shard_count: int) -> int:
+    if shard_count < 1:
+        raise ValueError("SHARD_COUNT must be at least 1")
+
+    file_date = date_from_rel(rel)
+    if file_date is not None:
+        return file_date.toordinal() % shard_count
+
+    digest = hashlib.sha256(rel.encode("utf-8")).digest()
+    return int.from_bytes(digest[:8], "big") % shard_count
+
+
 def in_hash_shard(rel: str) -> bool:
     count = int(os.getenv("SHARD_COUNT", "1"))
     index = int(os.getenv("SHARD_INDEX", "0"))
@@ -99,8 +111,7 @@ def in_hash_shard(rel: str) -> bool:
         raise ValueError("SHARD_COUNT must be at least 1")
     if index < 0 or index >= count:
         raise ValueError("SHARD_INDEX must be between 0 and SHARD_COUNT - 1")
-    digest = hashlib.sha256(rel.encode("utf-8")).digest()
-    return int.from_bytes(digest[:8], "big") % count == index
+    return shard_index_for_rel(rel, count) == index
 
 
 def should_index_rel(rel: str) -> bool:
