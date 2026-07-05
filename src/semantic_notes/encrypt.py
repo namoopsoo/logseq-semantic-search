@@ -1,35 +1,41 @@
 import os
 from tqdm import tqdm
 from pathlib import Path
-from index_notes import (
-    build_fernet_from_env, encrypt_if_needed, iter_local_markdown, required_env, getenv_bool,
+
+from semantic_notes.note_utils import (
+    build_fernet_from_env, encrypt_if_needed, iter_local_markdown, getenv_bool, required_env, s3_client
+
 )
 
 
 def do():
     fernet = build_fernet_from_env()
 
-    markdown_files = iter_local_markdown(fernet)
-
-    output_dir = Path(os.getenv("LOCAL_ENCRYPTED_NOTES_DIR"))
-
-    if getenv_bool("WRITE_TO_LOCAL"):
-        ...
-        print("writing encrypted to local")
-    elif getenv_bool("WRITE_TO_S3"):
-        raise NotImplemented()
+    markdown_files = iter_local_markdown(None)
 
     for markdown_file in tqdm(markdown_files):
         relative_path = markdown_file.rel
         journal = markdown_file.text
+        print(f"encrypting {relative_path}")
 
-        output_path = output_dir / relative_path
-        
         enc = encrypt_if_needed(journal, fernet).decode()
 
-        output_path.write_text(enc)
+        if getenv_bool("WRITE_TO_LOCAL"):
+            print("writing encrypted to local")
+            output_dir = Path(os.getenv("LOCAL_ENCRYPTED_NOTES_DIR"))
+            output_path = output_dir / relative_path
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            output_path.write_text(enc)
+        elif getenv_bool("WRITE_TO_S3"):
+            print("writing encrypted to s3")
+            bucket = required_env("S3_BUCKET")
 
-        print(f"encrypting {relative_path} --> {output_path}")
+            key = relative_path
+            s3_client().put_object(
+                Bucket=bucket, Key=key, Body=enc)
+        else:
+            raise NotImplementedError("neither WRITE_TO_LOCAL, nor WRITE_TO_S3 has been set.")
+        ...
 
 
 if __name__ == "__main__":    

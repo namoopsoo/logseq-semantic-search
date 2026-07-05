@@ -4,7 +4,6 @@ import itertools
 from sentence_transformers import SentenceTransformer
 from sentence_transformers.util import cos_sim
 
-from pathlib import Path
 hugging_face_cache = "/models"
 MODEL_NAME = "all-MiniLM-L6-v2"
 MODEL_NAME = "all-mpnet-base-v2"

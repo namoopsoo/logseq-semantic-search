@@ -15,4 +15,98 @@ services:
       MODEL_NAME: Qwen/Qwen3-Embedding-0.6B
       COLLECTION: logseq_notes
 
+  # encrypt from local to local
+  local-encrypt-test:
+    image: logseq-semantic-search:local
+    container_name: logseq-semantic-search
+    volumes:
+      # output dir
+      - "$PWD/encrypted_notes_dir:/encrypted_notes_dir"
+
+      # local plaintext notes are the source 
+      - "$LOGSEQ_DIR:/notes:ro"
+    environment:
+      LOCAL_SOURCE_DIR: /notes
+      LOCAL_ENCRYPTED_NOTES_DIR: /encrypted_notes_dir
+      MARKDOWN_SOURCE: "local"
+      WRITE_TO_S3: "no"
+      WRITE_TO_CHROMA: "no"
+      WRITE_TO_LOCAL: "yes"
+      LOCAL_MARKDOWN_GLOBS: "2025_01_*.md"
+    command:
+      - /bin/sh
+      - -c
+      - |
+        .venv/bin/python -m semantic_notes.encrypt
+
+
+  # embed encrypted notes to a dir, instead of to chromadb
+  local-embed-to-dir-test:
+    image: logseq-semantic-search:local
+    container_name: logseq-semantic-search
+    volumes:
+      - "$LOGSEQ_DIR:/notes:ro"
+      - "$PWD/chroma_logseq:/chroma_logseq"
+      - "$HOME/.cache/huggingface/hub:/models:ro"
+      - "$PWD/local_embeddings:/local_embeddings"
+
+      # This time encrypted notes are the source
+      - "$PWD/encrypted_notes_dir:/notes"
+    environment:
+      # LOGSEQ_DIR: /notes
+      LOCAL_SOURCE_DIR: /notes
+      # LOCAL_ENCRYPTED_NOTES_DIR: /encrypted_notes_dir
+      DB_DIR: /chroma
+
+      # S3_EMBEDDINGS_PREFIX: ""  # migt set it later.
+      LOCAL_EMBEDDINGS_DIR: "/local_embeddings"
+      COLLECTION: logseq_notes
+      MODEL_NAME: Qwen/Qwen3-Embedding-0.6B
+      MARKDOWN_SOURCE: "local"
+      HF_CACHE_DIR: "/models"
+      WRITE_TO_S3: "no"
+      WRITE_TO_CHROMA: "no"
+      WRITE_TO_LOCAL: "yes"
+      S3_BUCKET: "no_bucket_specified"
+      LOCAL_MARKDOWN_GLOBS: "2025_01_*.md"
+      S3_ENCRYPTION_KEY: $S3_ENCRYPTION_KEY
+    command:
+      #- /bin/sh
+      #- -c
+      #- .venv/bin/python -m semantic_notes.index_notes
+
+      # can have just bash, to make this interactive
+      - /bin/bash
+
+
+  # encrypt from local to local
+  local-encrypt-to-s3:
+    image: logseq-semantic-search:local
+    container_name: logseq-semantic-search
+    volumes:
+      # output dir
+      - "$PWD/encrypted_notes_dir:/encrypted_notes_dir"
+
+      # local plaintext notes are the source 
+      - "$LOGSEQ_DIR:/notes:ro"
+
+      - "$HOME/.aws:/root/.aws:ro"
+
+    environment:
+      S3_ENCRYPTION_KEY: $S3_ENCRYPTION_KEY
+      S3_BUCKET: $S3_BUCKET
+      LOCAL_SOURCE_DIR: /notes
+      MARKDOWN_SOURCE: "local"
+      WRITE_TO_S3: "yes"
+      WRITE_TO_CHROMA: "no"
+      WRITE_TO_LOCAL: "no"
+      LOCAL_MARKDOWN_GLOBS: "2024_01_*.md"
+
+      AWS_PROFILE: "${AWS_PROFILE:-default}"
+      AWS_REGION: "${AWS_REGION:-us-east-1}"
+    command:
+      - /bin/sh
+      - -c
+      - |
+        .venv/bin/python -m semantic_notes.encrypt
 
