@@ -90,14 +90,14 @@ services:
       # local plaintext notes are the source 
       - "$LOGSEQ_DIR:/notes:ro"
     environment:
+      S3_ENCRYPTION_KEY: $S3_ENCRYPTION_KEY
       S3_BUCKET: $S3_BUCKET
       LOCAL_SOURCE_DIR: /notes
-      LOCAL_ENCRYPTED_NOTES_DIR: /encrypted_notes_dir
       MARKDOWN_SOURCE: "local"
       WRITE_TO_S3: "yes"
       WRITE_TO_CHROMA: "no"
       WRITE_TO_LOCAL: "no"
-      LOCAL_MARKDOWN_GLOBS: "2025_01_*.md"
+      LOCAL_MARKDOWN_GLOBS: "2024_01_*.md"
     command:
       - /bin/sh
       - -c

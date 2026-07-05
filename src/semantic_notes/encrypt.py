@@ -13,12 +13,10 @@ def do():
 
     markdown_files = iter_local_markdown(None)
 
-
-
     for markdown_file in tqdm(markdown_files):
         relative_path = markdown_file.rel
         journal = markdown_file.text
-        print(f"encrypting {relative_path} --> {output_path}")
+        print(f"encrypting {relative_path}")
 
         enc = encrypt_if_needed(journal, fernet).decode()
 
@@ -36,7 +34,7 @@ def do():
             s3_client().put_object(
                 Bucket=bucket, Key=key, Body=enc)
         else:
-            raise NotImplemented()
+            raise NotImplementedError("neither WRITE_TO_LOCAL, nor WRITE_TO_S3 has been set.")
         ...
 
 

@@ -1,7 +1,6 @@
 import html
 import re
 import random
-from pathlib import Path
 
 import chromadb
 from fastapi import FastAPI, Query
