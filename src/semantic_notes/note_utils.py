@@ -15,6 +15,11 @@ load_dotenv()
 DATE_STEM_RE = re.compile(r"^(\d{4})_(\d{2})_(\d{2})$")
 
 
+def s3_client():
+    import boto3
+
+    return boto3.client("s3", region_name=os.getenv("AWS_REGION"))
+
 @dataclass(frozen=True)
 class MarkdownFile:
     rel: str  # relative path

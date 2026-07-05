@@ -57,3 +57,19 @@ docker run \
   logseq-semantic-search:local bash
 ```
 
+
+## Setup EKS secrets
+create/edit, by setting as environmntal vars then running
+```sh
+kubernetes_secrets_group="logseq-batch-embed-env"
+
+kubectl create secret generic $kubernetes_secrets_group \
+  --from-literal=AWS_REGION=$AWS_REGION \
+  --from-literal=S3_BUCKET=$S3_BUCKET \
+  --from-literal=S3_ENCRYPTION_KEY=$S3_ENCRYPTION_KEY \
+
+```
+, editing, by first deleting, , and then creating again 
+```
+kubectl delete secret $kubernetes_secrets_group
+```

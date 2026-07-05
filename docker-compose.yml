@@ -71,7 +71,36 @@ services:
       LOCAL_MARKDOWN_GLOBS: "2025_01_*.md"
       S3_ENCRYPTION_KEY: $S3_ENCRYPTION_KEY
     command:
+      #- /bin/sh
+      #- -c
+      #- .venv/bin/python -m semantic_notes.index_notes
+
+      # can have just bash, to make this interactive
+      - /bin/bash
+
+
+  # encrypt from local to local
+  local-encrypt-to-s3:
+    image: logseq-semantic-search:local
+    container_name: logseq-semantic-search
+    volumes:
+      # output dir
+      - "$PWD/encrypted_notes_dir:/encrypted_notes_dir"
+
+      # local plaintext notes are the source 
+      - "$LOGSEQ_DIR:/notes:ro"
+    environment:
+      S3_BUCKET: $S3_BUCKET
+      LOCAL_SOURCE_DIR: /notes
+      LOCAL_ENCRYPTED_NOTES_DIR: /encrypted_notes_dir
+      MARKDOWN_SOURCE: "local"
+      WRITE_TO_S3: "yes"
+      WRITE_TO_CHROMA: "no"
+      WRITE_TO_LOCAL: "no"
+      LOCAL_MARKDOWN_GLOBS: "2025_01_*.md"
+    command:
       - /bin/sh
       - -c
-      - .venv/bin/python -m semantic_notes.index_notes
+      - |
+        .venv/bin/python -m semantic_notes.encrypt
 

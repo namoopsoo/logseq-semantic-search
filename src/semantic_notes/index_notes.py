@@ -18,6 +18,7 @@ from semantic_notes.note_utils import (
     MarkdownFile,
     required_env,
     should_index_rel,
+    s3_client,
 )
 
 DEFAULT_MODEL_NAME = "Qwen/Qwen3-Embedding-0.6B"
@@ -29,12 +30,6 @@ def chunks(text: str, size: int = 900, overlap: int = 150):
     while i < len(text):
         yield text[i : i + size]
         i += size - overlap
-
-
-def s3_client():
-    import boto3
-
-    return boto3.client("s3", region_name=os.getenv("AWS_REGION"))
 
 
 def iter_s3_markdown(fernet: Fernet | None) -> Iterable[MarkdownFile]:
@@ -111,7 +106,7 @@ def save_state(state: dict) -> None:
 def main() -> None:
     source = os.getenv("MARKDOWN_SOURCE", "local").lower()
     fernet = build_fernet_from_env()
-    state = load_state()
+    state = {}  # load_state()
     model_name = os.getenv("MODEL_NAME", DEFAULT_MODEL_NAME)
     hugging_face_cache = os.getenv("HF_CACHE_DIR", "/models")
 
