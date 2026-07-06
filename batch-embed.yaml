@@ -12,7 +12,7 @@ spec:
       restartPolicy: Never
       containers:
         - name: batch-embed
-          image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/logseq-semantic-search:v0.1
+          image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/logseq-semantic-search:${DOCKER_TAG}
           command:
             - /bin/sh
             - -c
@@ -55,6 +55,6 @@ spec:
                   name: logseq-batch-embed-env
                   key: S3_ENCRYPTION_KEY
             - name: SHARD_COUNT
-              value: "8"
+              value: "3"
             - name: MODEL_NAME
               value: Qwen/Qwen3-Embedding-0.6B
