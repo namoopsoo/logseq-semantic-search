@@ -23,10 +23,10 @@ spec:
           resources:
             requests:
               cpu: "400m"
-              memory: "1Gi"
+              memory: "768Mi"
             limits:
               cpu: "500m"
-              memory: "4Gi"
+              memory: "2Gi"
           env:
             - name: MARKDOWN_SOURCE
               value: s3
@@ -55,6 +55,6 @@ spec:
                   name: logseq-batch-embed-env
                   key: S3_ENCRYPTION_KEY
             - name: SHARD_COUNT
-              value: "3"
+              value: "8"
             - name: MODEL_NAME
               value: Qwen/Qwen3-Embedding-0.6B
