@@ -83,3 +83,17 @@ DOCKER_BUILDKIT=1 docker build \
   --build-context qwen_model="$HOME/.cache/huggingface/hub/models--Qwen--Qwen3-Embedding-0.6B" \
   -t logseq-semantic-search:local .
 ```
+
+## Apply Batch Embed Job
+
+`kubectl apply -f` does not expand shell variables in Kubernetes YAML. Use allowlisted `envsubst` so only image/deploy variables are substituted, while Kubernetes runtime variables like `JOB_COMPLETION_INDEX` stay intact.
+
+```sh
+envsubst '$AWS_ACCOUNT_ID $AWS_REGION $DOCKER_TAG' < deploy/batch-embed.yaml | kubectl apply -f -
+```
+
+To preview the rendered manifest before applying it:
+
+```sh
+envsubst '$AWS_ACCOUNT_ID $AWS_REGION $DOCKER_TAG' < deploy/batch-embed.yaml
+```
