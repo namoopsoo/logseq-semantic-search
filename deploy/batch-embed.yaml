@@ -23,10 +23,10 @@ spec:
               uv run python -m semantic_notes.index_notes
           resources:
             requests:
-              cpu: "400m"
-              memory: "768Mi"
+              cpu: "1000m"
+              memory: "1200Mi"
             limits:
-              cpu: "500m"
+              cpu: "1500m"
               memory: "2Gi"
           env:
             - name: MARKDOWN_SOURCE

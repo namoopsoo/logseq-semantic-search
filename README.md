@@ -98,6 +98,21 @@ DOCKER_BUILDKIT=1 docker build \
   -t logseq-semantic-search:local .
 ```
 
+The same build, tag, ECR login, and push flow is available through `just`:
+
+```sh
+export AWS_ACCOUNT_ID=...
+export AWS_REGION=us-east-1
+export DOCKER_TAG=...
+just publish
+```
+
+By default, `just build` uses `$HOME/.cache/huggingface/hub/models--Qwen--Qwen3-Embedding-0.6B` as the model cache. Override it with `QWEN_MODEL_CACHE` if needed:
+
+```sh
+QWEN_MODEL_CACHE=/path/to/models--Qwen--Qwen3-Embedding-0.6B just publish
+```
+
 ## Apply Batch Embed Job
 
 `kubectl apply -f` does not expand shell variables in Kubernetes YAML. Use allowlisted `envsubst` so only image/deploy variables are substituted, while Kubernetes runtime variables like `JOB_COMPLETION_INDEX` stay intact.
