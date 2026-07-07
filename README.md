@@ -18,16 +18,30 @@ uvicorn app:app --reload --host 127.0.0.1 --port 8000
 ## Supporting EKS cluster
 Build it
 ```sh
-
-docker run \
-  --rm -it \
-  -v "$PWD":/configs \
-  -v "$HOME/.aws":/root/.aws:ro \
-  -e AWS_PROFILE="${AWS_PROFILE:-default}" \
-  -e AWS_REGION="${AWS_REGION:-us-east-1}" \
-  public.ecr.aws/eksctl/eksctl \
-  create cluster -f /configs/cluster.yaml
+sh deploy/create-cluster.sh
 ```
+
+EKS clusters do not have a true pause mode for the control plane. Deleting the batch job lets EKS Auto Mode scale worker nodes down after they become idle, but the EKS control plane still runs and still costs money.
+
+To pause worker-node spend after debugging or a failed run:
+
+```sh
+sh deploy/pause-cluster.sh
+```
+
+To stop the EKS control-plane cost too, delete the cluster:
+
+```sh
+sh deploy/delete-cluster.sh
+```
+
+To rebuild it later:
+
+```sh
+sh deploy/create-cluster.sh
+```
+
+After rebuilding, recreate the Kubernetes secret, service account, Pod Identity association, and S3 role policy before running the batch job again.
 
 ## run docker locally
 
