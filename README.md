@@ -97,3 +97,17 @@ To preview the rendered manifest before applying it:
 ```sh
 envsubst '$AWS_ACCOUNT_ID $AWS_REGION $DOCKER_TAG' < deploy/batch-embed.yaml
 ```
+
+## EKS Pod Identity S3 Permissions
+
+The batch embed job uses `serviceAccountName: logseq-embed-sa`, which should be associated with the IAM role `logseq-embed-s3-role` through EKS Pod Identity. Attach the S3 policy after setting `S3_BUCKET`:
+
+```sh
+envsubst '$S3_BUCKET' < deploy/logseq-embed-s3-policy.json | \
+  aws iam put-role-policy \
+    --role-name logseq-embed-s3-role \
+    --policy-name logseq-embed-s3-access \
+    --policy-document file:///dev/stdin
+```
+
+The policy grants `s3:ListBucket` for `ListObjectsV2`, `s3:GetObject` for reading markdown files, and `s3:PutObject` for writing embedding shards.
