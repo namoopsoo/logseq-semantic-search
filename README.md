@@ -112,6 +112,24 @@ To preview the rendered manifest before applying it:
 envsubst '$AWS_ACCOUNT_ID $AWS_REGION $DOCKER_TAG' < deploy/batch-embed.yaml
 ```
 
+To inspect all shard logs instead of the single pod selected by `kubectl logs job/...`:
+
+```sh
+for pod in $(kubectl get pods -l job-name=batch-embed-logseq -o name); do
+  echo "===== $pod ====="
+  kubectl logs "$pod"
+done
+```
+
+Useful status checks while the job is running:
+
+```sh
+kubectl get pods -l job-name=batch-embed-logseq -o wide
+kubectl describe job batch-embed-logseq
+kubectl top pods -l job-name=batch-embed-logseq
+kubectl top nodes
+```
+
 ## EKS Pod Identity S3 Permissions
 
 The batch embed job uses `serviceAccountName: logseq-embed-sa`, which should be associated with the IAM role `logseq-embed-s3-role` through EKS Pod Identity. Attach the S3 policy after setting `S3_BUCKET`:
