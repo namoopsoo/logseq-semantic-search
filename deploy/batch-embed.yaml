@@ -9,6 +9,7 @@ spec:
   parallelism: 3
   template:
     spec:
+      serviceAccountName: logseq-embed-sa
       restartPolicy: Never
       containers:
         - name: batch-embed
