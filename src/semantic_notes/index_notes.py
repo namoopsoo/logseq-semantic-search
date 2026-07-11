@@ -1,8 +1,6 @@
 import hashlib
 import json
 import os
-import resource
-from pathlib import Path
 from typing import Iterable
 
 import chromadb
@@ -21,32 +19,14 @@ from semantic_notes.note_utils import (
     should_index_rel,
     s3_client,
 )
+from semantic_notes.memory import format_container_memory
 
 DEFAULT_MODEL_NAME = "Qwen/Qwen3-Embedding-0.6B"
 
 
-def current_rss_mb() -> float | None:
-    try:
-        for line in Path("/proc/self/status").read_text().splitlines():
-            if line.startswith("VmRSS:"):
-                return int(line.split()[1]) / 1024
-    except OSError:
-        return None
-    return None
-
-
-def max_rss_mb() -> float:
-    return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024
-
-
 def log_progress(message: str) -> None:
-    current = current_rss_mb()
-    if current is None:
-        memory = f"max_rss={max_rss_mb():.1f}MiB"
-    else:
-        memory = f"rss={current:.1f}MiB max_rss={max_rss_mb():.1f}MiB"
     shard = os.getenv("SHARD_INDEX", "0")
-    print(f"[shard {shard}] {message} ({memory})", flush=True)
+    print(f"[shard {shard}] {message} ({format_container_memory()})", flush=True)
 
 
 def chunks(text: str, size: int = 900, overlap: int = 150):
