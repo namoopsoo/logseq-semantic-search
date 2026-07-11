@@ -1,6 +1,6 @@
 services:
   logseq-semantic-search:
-    image: $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/logseq-semantic-search:v0.1
+    image: $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/logseq-semantic-search:${DOCKER_TAG}
     container_name: logseq-semantic-search
     restart: unless-stopped
     ports:
@@ -135,4 +135,13 @@ services:
       - -c
       - |
         .venv/bin/python -m semantic_notes.smoke_test
+
+  local-bash:
+    image: logseq-semantic-search:local
+    container_name: logseq-semantic-search
+    environment:
+      FOO: "foo"
+      MODEL_NAME: Qwen/Qwen3-Embedding-0.6B
+    command:
+      - bash
 

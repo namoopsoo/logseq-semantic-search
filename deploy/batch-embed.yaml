@@ -7,6 +7,7 @@ spec:
   completionMode: Indexed
   completions: 8
   parallelism: 3
+  ttlSecondsAfterFinished:  86400   # 24 hours
   template:
     spec:
       serviceAccountName: logseq-embed-sa
